@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 export async function handler() {
   const repoOwner = process.env.GITHUB_OWNER;
   const repoName = process.env.GITHUB_REPO;
