@@ -1,36 +1,27 @@
+const fetch = require('node-fetch');
+
 exports.handler = async (event) => {
-  const params = event.queryStringParameters;
-  const key = params.key;
+  try {
+    let key = event.queryStringParameters.key || "defaultKey"; // default key
+    const GITHUB_OWNER = process.env.GITHUB_OWNER;
+    const GITHUB_REPO = process.env.GITHUB_REPO;
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-  if (!key) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Key is required" })
-    };
+    const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/data/${key}.json`;
+
+    const response = await fetch(url, {
+      headers: { Authorization: `token ${GITHUB_TOKEN}` }
+    });
+
+    if (!response.ok) {
+      return { statusCode: response.status, body: JSON.stringify({ error: "Data not found" }) };
+    }
+
+    const data = await response.json();
+    const content = Buffer.from(data.content, 'base64').toString('utf-8');
+    return { statusCode: 200, body: content };
+
+  } catch (error) {
+    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
   }
-
-  globalThis.tempData = globalThis.tempData || {};
-  const stored = globalThis.tempData[key];
-
-  if (!stored) {
-    return {
-      statusCode: 404,
-      body: JSON.stringify({ error: "Not found" })
-    };
-  }
-
-  // Data dianggap valid selama <= 5 menit
-  const FIVE_MINUTES = 5 * 60 * 1000;
-  if (Date.now() - stored.timestamp > FIVE_MINUTES) {
-    delete globalThis.tempData[key];
-    return {
-      statusCode: 404,
-      body: JSON.stringify({ error: "Expired" })
-    };
-  }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ value: stored.value })
-  };
 };
