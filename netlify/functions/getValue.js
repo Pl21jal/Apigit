@@ -1,26 +1,36 @@
-export async function handler() {
-  const repoOwner = process.env.GITHUB_OWNER;
-  const repoName = process.env.GITHUB_REPO;
-  const filePath = 'data.json';
-  const token = process.env.GITHUB_TOKEN;
+exports.handler = async (event) => {
+  const params = event.queryStringParameters;
+  const key = params.key;
 
-  try {
-    const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3.raw'
-      }
-    });
-    if (!res.ok) throw new Error('Gagal membaca file');
-    const data = await res.json();
+  if (!key) {
     return {
-      statusCode: 200,
-      body: JSON.stringify(data)
-    };
-  } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      statusCode: 400,
+      body: JSON.stringify({ error: "Key is required" })
     };
   }
-}
+
+  globalThis.tempData = globalThis.tempData || {};
+  const stored = globalThis.tempData[key];
+
+  if (!stored) {
+    return {
+      statusCode: 404,
+      body: JSON.stringify({ error: "Not found" })
+    };
+  }
+
+  // Data dianggap valid selama <= 5 menit
+  const FIVE_MINUTES = 5 * 60 * 1000;
+  if (Date.now() - stored.timestamp > FIVE_MINUTES) {
+    delete globalThis.tempData[key];
+    return {
+      statusCode: 404,
+      body: JSON.stringify({ error: "Expired" })
+    };
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ value: stored.value })
+  };
+};
