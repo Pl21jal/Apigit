@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method not allowed' };
@@ -14,7 +12,7 @@ export async function handler(event) {
     const body = JSON.parse(event.body);
     const newValue = { value: body.value };
 
-    // Get SHA dari file lama
+    // Ambil SHA file lama
     const getRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
       headers: { Authorization: `token ${token}` }
     });
